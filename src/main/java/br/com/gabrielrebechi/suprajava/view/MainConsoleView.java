@@ -1,5 +1,6 @@
 package br.com.gabrielrebechi.suprajava.view;
 
+import br.com.gabrielrebechi.suprajava.dto.FornecedorDTO;
 import br.com.gabrielrebechi.suprajava.dto.ProdutoDTO;
 import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -31,6 +32,7 @@ public class MainConsoleView implements CommandLineRunner {
             System.out.println("\n=== SUPRAJAVA - MENU PRINCIPAL ===");
             System.out.println("1. Unidade de Medida");
             System.out.println("2. Produto");
+            System.out.println("3. Fornecedor");
             System.out.println("0. Sair");
             System.out.print("Escolha: ");
             int opcao = Integer.parseInt(scanner.nextLine());
@@ -38,6 +40,7 @@ public class MainConsoleView implements CommandLineRunner {
             switch (opcao) {
                 case 1 -> menuUnidadeMedida();
                 case 2 -> menuProduto();
+                case 3 -> menuFornecedor();
                 case 0 -> {
                     System.out.println("Encerrando...");
                     return;
@@ -272,6 +275,131 @@ public class MainConsoleView implements CommandLineRunner {
                 .uri(URI.create(baseUrl + "/" + id))
                 .DELETE()
                 .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.statusCode() == 204 ? "Removido com sucesso" : response.body());
+    }
+
+    private void menuFornecedor() throws Exception {
+        String baseUrl = "http://localhost:8080/api/fornecedores";
+        while (true) {
+            System.out.println("\n--- MENU: Fornecedor ---");
+            System.out.println("1. Listar");
+            System.out.println("2. Cadastrar");
+            System.out.println("3. Buscar por ID");
+            System.out.println("4. Atualizar");
+            System.out.println("5. Deletar");
+            System.out.println("0. Voltar");
+            System.out.print("Escolha: ");
+            int opcao = Integer.parseInt(scanner.nextLine());
+
+            switch (opcao) {
+                case 1 -> listarFornecedores(baseUrl);
+                case 2 -> cadastrarFornecedor(baseUrl);
+                case 3 -> buscarFornecedorPorId(baseUrl);
+                case 4 -> atualizarFornecedor(baseUrl);
+                case 5 -> deletarFornecedor(baseUrl);
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Opção inválida!");
+            }
+        }
+    }
+
+    private void listarFornecedores(String baseUrl) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        List<FornecedorDTO> lista = mapper.readValue(response.body(), new TypeReference<>() {});
+        lista.forEach(f -> System.out.printf("[%d] %s - CNPJ: %s, Email: %s, Telefone: %s%n",
+                f.id(), f.nome(), f.cnpj(), f.email(), f.telefone()));
+    }
+
+    private void cadastrarFornecedor(String baseUrl) throws Exception {
+        System.out.print("Nome: ");
+        String nome = scanner.nextLine();
+        System.out.print("CNPJ: ");
+        String cnpj = scanner.nextLine();
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Telefone: ");
+        String telefone = scanner.nextLine();
+
+        String json = String.format("""
+    {
+      "nome": "%s",
+      "cnpj": "%s",
+      "email": "%s",
+      "telefone": "%s"
+    }
+    """, nome, cnpj, email, telefone);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void buscarFornecedorPorId(String baseUrl) throws Exception {
+        System.out.print("ID: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + id))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void atualizarFornecedor(String baseUrl) throws Exception {
+        System.out.print("ID: ");
+        Long id = Long.parseLong(scanner.nextLine());
+        System.out.print("Nome: ");
+        String nome = scanner.nextLine();
+        System.out.print("CNPJ: ");
+        String cnpj = scanner.nextLine();
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Telefone: ");
+        String telefone = scanner.nextLine();
+
+        String json = String.format("""
+    {
+      "nome": "%s",
+      "cnpj": "%s",
+      "email": "%s",
+      "telefone": "%s"
+    }
+    """, nome, cnpj, email, telefone);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + id))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void deletarFornecedor(String baseUrl) throws Exception {
+        System.out.print("ID: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + id))
+                .DELETE()
+                .build();
+
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println(response.statusCode() == 204 ? "Removido com sucesso" : response.body());
     }
