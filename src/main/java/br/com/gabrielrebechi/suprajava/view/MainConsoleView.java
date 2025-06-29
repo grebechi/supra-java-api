@@ -1,6 +1,7 @@
 package br.com.gabrielrebechi.suprajava.view;
 
 import br.com.gabrielrebechi.suprajava.dto.FornecedorDTO;
+import br.com.gabrielrebechi.suprajava.dto.OrcamentoDTO;
 import br.com.gabrielrebechi.suprajava.dto.ProdutoDTO;
 import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,6 +22,9 @@ public class MainConsoleView implements CommandLineRunner {
     private static final Scanner scanner = new Scanner(System.in);
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final ObjectMapper mapper = new ObjectMapper();
+    static {
+        mapper.findAndRegisterModules(); // habilita suporte ao LocalDate, etc.
+    }
 
     @Override
     public void run(String... args) throws Exception {
@@ -33,6 +37,7 @@ public class MainConsoleView implements CommandLineRunner {
             System.out.println("1. Unidade de Medida");
             System.out.println("2. Produto");
             System.out.println("3. Fornecedor");
+            System.out.println("4. Orçamentos");
             System.out.println("0. Sair");
             System.out.print("Escolha: ");
             int opcao = Integer.parseInt(scanner.nextLine());
@@ -41,6 +46,7 @@ public class MainConsoleView implements CommandLineRunner {
                 case 1 -> menuUnidadeMedida();
                 case 2 -> menuProduto();
                 case 3 -> menuFornecedor();
+                case 4 -> menuOrcamento();
                 case 0 -> {
                     System.out.println("Encerrando...");
                     return;
@@ -402,5 +408,137 @@ public class MainConsoleView implements CommandLineRunner {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println(response.statusCode() == 204 ? "Removido com sucesso" : response.body());
+    }
+
+    private void menuOrcamento() throws Exception {
+        String baseUrl = "http://localhost:8080/api/orcamentos";
+        while (true) {
+            System.out.println("\n--- MENU: Orçamento ---");
+            System.out.println("1. Listar");
+            System.out.println("2. Cadastrar");
+            System.out.println("3. Buscar por ID");
+            System.out.println("4. Atualizar");
+            System.out.println("5. Deletar");
+            System.out.println("0. Voltar");
+            System.out.print("Escolha: ");
+            int opcao = Integer.parseInt(scanner.nextLine());
+
+            switch (opcao) {
+                case 1 -> listarOrcamentos(baseUrl);
+                case 2 -> cadastrarOrcamento(baseUrl);
+                case 3 -> buscarOrcamentoPorId(baseUrl);
+                case 4 -> atualizarOrcamento(baseUrl);
+                case 5 -> deletarOrcamento(baseUrl);
+                case 0 -> {
+                    return;
+                }
+                default -> System.out.println("Opção inválida!");
+            }
+        }
+    }
+
+    private void listarOrcamentos(String baseUrl) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        List<OrcamentoDTO> lista = mapper.readValue(response.body(), new TypeReference<>() {});
+        lista.forEach(o -> System.out.printf("[%d] %s | %s - %s (R$ %s)\n",
+                o.id(), o.nome(), o.fornecedor().nome(), o.data(), o.valorTotal() != null ? o.valorTotal() : "0.00"));
+    }
+
+    private void cadastrarOrcamento(String baseUrl) throws Exception {
+        System.out.print("Nome do orçamento: ");
+        String nome = scanner.nextLine();
+
+        System.out.print("ID do fornecedor: ");
+        Long fornecedorId = Long.parseLong(scanner.nextLine());
+
+        System.out.print("Data (yyyy-MM-dd): ");
+        String data = scanner.nextLine();
+
+        System.out.print("Observação: ");
+        String obs = scanner.nextLine();
+
+        String json = String.format("""
+    {
+      "nome": "%s",
+      "fornecedorId": %d,
+      "data": "%s",
+      "observacao": "%s"
+    }
+    """, nome, fornecedorId, data, obs);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void buscarOrcamentoPorId(String baseUrl) throws Exception {
+        System.out.print("ID do orçamento: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + id))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void atualizarOrcamento(String baseUrl) throws Exception {
+        System.out.print("ID do orçamento: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        System.out.print("Novo nome do orçamento: ");
+        String nome = scanner.nextLine();
+
+        System.out.print("ID do fornecedor: ");
+        Long fornecedorId = Long.parseLong(scanner.nextLine());
+
+        System.out.print("Nova data (yyyy-MM-dd): ");
+        String data = scanner.nextLine();
+
+        System.out.print("Nova observação: ");
+        String obs = scanner.nextLine();
+
+        String json = String.format("""
+    {
+      "nome": "%s",
+      "fornecedorId": %d,
+      "data": "%s",
+      "observacao": "%s"
+    }
+    """, nome, fornecedorId, data, obs);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + id))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void deletarOrcamento(String baseUrl) throws Exception {
+        System.out.print("ID do orçamento: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + id))
+                .DELETE()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.statusCode() == 204 ? "Removido com sucesso." : response.body());
     }
 }
