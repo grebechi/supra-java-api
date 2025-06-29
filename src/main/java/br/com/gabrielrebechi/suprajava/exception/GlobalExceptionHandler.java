@@ -16,12 +16,28 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
+        String mensagem = "Violação de integridade no banco de dados.";
+
+        Throwable causa = ex.getRootCause();
+        if (causa != null && causa.getMessage() != null) {
+            String erro = causa.getMessage().toLowerCase();
+
+            if (erro.contains("violates foreign key constraint") && erro.contains("produto")) {
+                mensagem = "Não é possível excluir a unidade de medida: ela está vinculada a um ou mais produtos.";
+            } else if (erro.contains("duplicate key")) {
+                mensagem = "Erro: valor já está sendo utilizado e deve ser único.";
+            } else {
+                mensagem = "Violação de integridade: " + causa.getMessage();
+            }
+        }
+
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
-                "Violação de integridade: provavelmente algum campo único foi duplicado.",
+                mensagem,
                 request.getRequestURI()
         );
     }
+
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
