@@ -4,12 +4,15 @@ import br.com.gabrielrebechi.suprajava.dto.*;
 import br.com.gabrielrebechi.suprajava.model.*;
 import br.com.gabrielrebechi.suprajava.repository.*;
 import br.com.gabrielrebechi.suprajava.util.TempoUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+@Tag(name = "Orçamentos", description = "Gerencia orçamentos com fornecedores e produtos")
 @RestController
 @RequestMapping("/api/orcamentos")
 public class OrcamentoController {
@@ -26,6 +29,7 @@ public class OrcamentoController {
         this.itemOrcamentoRepository = itemOrcamentoRepository;
     }
 
+    @Operation(summary = "Lista todos os orçamentos")
     @GetMapping
     public List<OrcamentoDTO> listar() {
         return orcamentoRepository.listarTodosOrdenadosPorData().stream()
@@ -33,6 +37,7 @@ public class OrcamentoController {
                 .toList();
     }
 
+    @Operation(summary = "Busca um orçamento pelo ID")
     @GetMapping("/{id}")
     public ResponseEntity<OrcamentoDTO> buscarPorId(@PathVariable Long id) {
         return orcamentoRepository.findById(id)
@@ -41,6 +46,7 @@ public class OrcamentoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Cadastra um novo orçamento")
     @PostMapping
     public ResponseEntity<?> criar(@RequestBody OrcamentoCreateDTO dto) {
         Fornecedor fornecedor = fornecedorRepository.findById(dto.fornecedorId()).orElse(null);
@@ -54,6 +60,7 @@ public class OrcamentoController {
         return ResponseEntity.ok(toDTO(salvo));
     }
 
+    @Operation(summary = "Atualiza um orçamento pelo ID")
     @PutMapping("/{id}")
     public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody OrcamentoCreateDTO dto) {
         return orcamentoRepository.findById(id)
@@ -74,6 +81,7 @@ public class OrcamentoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Deleta um orçamento pelo ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (!orcamentoRepository.existsById(id)) {
@@ -83,6 +91,7 @@ public class OrcamentoController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Lista orçamentos de um fornecedor")
     @GetMapping("/fornecedor/{id}")
     public ResponseEntity<?> listarPorFornecedor(@PathVariable Long id) {
         if (!fornecedorRepository.existsById(id)) {

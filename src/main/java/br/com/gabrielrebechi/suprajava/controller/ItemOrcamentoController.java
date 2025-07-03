@@ -11,12 +11,15 @@ import br.com.gabrielrebechi.suprajava.repository.OrcamentoRepository;
 import br.com.gabrielrebechi.suprajava.repository.ProdutoRepository;
 import br.com.gabrielrebechi.suprajava.service.OrcamentoService;
 import br.com.gabrielrebechi.suprajava.util.TempoUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+@Tag(name = "Itens do Orçamento", description = "Gerencia itens que compõem os orçamentos")
 @RestController
 @RequestMapping("/api/itens")
 public class ItemOrcamentoController {
@@ -36,6 +39,7 @@ public class ItemOrcamentoController {
         this.orcamentoService = orcamentoService;
     }
 
+    @Operation(summary = "Cadastra um novo item no orçamento")
     @PostMapping
     public ResponseEntity<?> criar(@RequestBody ItemOrcamentoCreateDTO dto) {
         Produto produto = produtoRepo.findById(dto.produtoId()).orElse(null);
@@ -60,6 +64,7 @@ public class ItemOrcamentoController {
         return ResponseEntity.ok(toDTO(salvo));
     }
 
+    @Operation(summary = "Atualiza um item do orçamento")
     @PutMapping("/{id}")
     public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody ItemOrcamentoCreateDTO dto) {
         var itemOptional = itemRepo.findById(id);
@@ -93,6 +98,7 @@ public class ItemOrcamentoController {
         return ResponseEntity.ok(toDTO(item));
     }
 
+    @Operation(summary = "Deleta um item do orçamento")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deletar(@PathVariable Long id) {
         return itemRepo.findById(id).map(item -> {
@@ -103,6 +109,7 @@ public class ItemOrcamentoController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Lista todos os itens de orçamentos")
     @GetMapping
     public List<ItemOrcamentoDTO> listar() {
         return itemRepo.findAll().stream()
@@ -110,6 +117,7 @@ public class ItemOrcamentoController {
                 .toList();
     }
 
+    @Operation(summary = "Busca um item do orçamento pelo ID")
     @GetMapping("/{id}")
     public ResponseEntity<ItemOrcamentoDTO> buscarPorId(@PathVariable Long id) {
         return itemRepo.findById(id)

@@ -4,11 +4,14 @@ import br.com.gabrielrebechi.suprajava.dto.FornecedorCreateDTO;
 import br.com.gabrielrebechi.suprajava.dto.FornecedorDTO;
 import br.com.gabrielrebechi.suprajava.model.Fornecedor;
 import br.com.gabrielrebechi.suprajava.repository.FornecedorRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Fornecedores", description = "Gerencia fornecedores de produtos")
 @RestController
 @RequestMapping("/api/fornecedores")
 public class FornecedorController {
@@ -19,6 +22,7 @@ public class FornecedorController {
         this.repository = repository;
     }
 
+    @Operation(summary = "Lista todos os fornecedores")
     @GetMapping
     public List<FornecedorDTO> listar() {
         return repository.findAll().stream()
@@ -26,6 +30,7 @@ public class FornecedorController {
                 .toList();
     }
 
+    @Operation(summary = "Busca um fornecedor pelo ID")
     @GetMapping("/{id}")
     public ResponseEntity<FornecedorDTO> buscarPorId(@PathVariable Long id) {
         return repository.findById(id)
@@ -34,6 +39,7 @@ public class FornecedorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Cadastra um novo fornecedor")
     @PostMapping
     public ResponseEntity<?> criar(@RequestBody FornecedorCreateDTO dto) {
         if (repository.existsByNomeIgnoreCase(dto.nome())) {
@@ -47,6 +53,7 @@ public class FornecedorController {
         return ResponseEntity.ok(toDTO(salvo));
     }
 
+    @Operation(summary = "Atualiza um fornecedor pelo ID")
     @PutMapping("/{id}")
     public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody FornecedorCreateDTO dto) {
         return repository.findById(id)
@@ -67,6 +74,7 @@ public class FornecedorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Deleta um fornecedor pelo ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (!repository.existsById(id)) {

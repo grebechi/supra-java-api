@@ -4,11 +4,14 @@ import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaCreateDTO;
 import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaDTO;
 import br.com.gabrielrebechi.suprajava.model.UnidadeMedida;
 import br.com.gabrielrebechi.suprajava.repository.UnidadeMedidaRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Unidades de Medida", description = "Gerencia unidades de medida dos produtos")
 @RestController
 @RequestMapping("/api/unidades")
 public class UnidadeMedidaController {
@@ -19,6 +22,7 @@ public class UnidadeMedidaController {
         this.repository = repository;
     }
 
+    @Operation(summary = "Lista todas as unidades de medida")
     @GetMapping
     public List<UnidadeMedidaDTO> listar() {
         return repository.findAll().stream()
@@ -26,6 +30,7 @@ public class UnidadeMedidaController {
                 .toList();
     }
 
+    @Operation(summary = "Busca uma unidade de medida pelo ID")
     @GetMapping("/{id}")
     public ResponseEntity<UnidadeMedidaDTO> buscarPorId(@PathVariable Long id) {
         return repository.findById(id)
@@ -33,6 +38,7 @@ public class UnidadeMedidaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Cadastra uma nova unidade de medida")
     @PostMapping
     public ResponseEntity<?> criar(@RequestBody UnidadeMedidaCreateDTO dto) {
         if (repository.silgaJaRegistrada(dto.sigla())) {
@@ -44,6 +50,7 @@ public class UnidadeMedidaController {
         return ResponseEntity.ok(toDTO(salva));
     }
 
+    @Operation(summary = "Atualiza uma unidade de medida pelo ID")
     @PutMapping("/{id}")
     public ResponseEntity<UnidadeMedidaDTO> atualizar(@PathVariable Long id, @RequestBody UnidadeMedidaCreateDTO dto) {
         return repository.findById(id)
@@ -57,6 +64,7 @@ public class UnidadeMedidaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Deleta uma unidade de medida pelo ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
