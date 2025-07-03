@@ -11,4 +11,7 @@ public interface ItemOrcamentoRepository extends JpaRepository<ItemOrcamento, Lo
     @Query("SELECT i FROM ItemOrcamento i WHERE i.orcamento.id = :orcamentoId")
     List<ItemOrcamento> buscarPorOrcamentoId(Long orcamentoId);
 
+    @Query("SELECT i FROM ItemOrcamento i WHERE i.produto.id = :produtoId ORDER BY i.precoUnitario ASC")
+    List<ItemOrcamento> buscarPorProdutoOrdenadoPorPreco(Long produtoId);
+
 }

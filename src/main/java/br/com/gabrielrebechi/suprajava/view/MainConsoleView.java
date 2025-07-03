@@ -1,14 +1,12 @@
 package br.com.gabrielrebechi.suprajava.view;
 
-import br.com.gabrielrebechi.suprajava.dto.FornecedorDTO;
-import br.com.gabrielrebechi.suprajava.dto.OrcamentoDTO;
-import br.com.gabrielrebechi.suprajava.dto.ProdutoDTO;
-import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaDTO;
+import br.com.gabrielrebechi.suprajava.dto.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -92,6 +90,7 @@ public class MainConsoleView implements CommandLineRunner {
             System.out.println("3. Buscar por ID");
             System.out.println("4. Atualizar");
             System.out.println("5. Deletar");
+            System.out.println("6. Valores por Produto");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
             int opcao = Integer.parseInt(scanner.nextLine());
@@ -102,6 +101,7 @@ public class MainConsoleView implements CommandLineRunner {
                 case 3 -> buscarProdutoPorId(baseUrl);
                 case 4 -> atualizarProduto(baseUrl);
                 case 5 -> deletarProduto(baseUrl);
+                case 6 -> buscarMelhoresOfertasPorProduto();
                 case 0 -> {
                     return;
                 }
@@ -285,6 +285,34 @@ public class MainConsoleView implements CommandLineRunner {
         System.out.println(response.statusCode() == 204 ? "Removido com sucesso" : response.body());
     }
 
+    private void buscarMelhoresOfertasPorProduto() throws Exception {
+        System.out.print("ID do produto: ");
+        Long produtoId = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/produtos/" + produtoId + "/melhores-ofertas"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            List<MelhorOfertaDTO> ofertas = mapper.readValue(response.body(), new TypeReference<>() {});
+            if (ofertas.isEmpty()) {
+                System.out.println("Nenhuma oferta encontrada para o produto informado.");
+            } else {
+                System.out.println("--- Melhores Ofertas ---");
+                for (MelhorOfertaDTO oferta : ofertas) {
+                    System.out.printf("\nFornecedor: %s | Preço Unitário: R$ %.2f | Data: %s | Observação: %s \n",
+                            oferta.fornecedor().nome(), oferta.precoUnitario(), oferta.dataOrcamento(), oferta.observacao());
+
+                }
+            }
+        } else {
+            System.out.println("Erro ao buscar ofertas: " + response.body());
+        }
+    }
+
     private void menuFornecedor() throws Exception {
         String baseUrl = "http://localhost:8080/api/fornecedores";
         while (true) {
@@ -410,6 +438,7 @@ public class MainConsoleView implements CommandLineRunner {
         System.out.println(response.statusCode() == 204 ? "Removido com sucesso" : response.body());
     }
 
+    // Adicionando o menu de Orçamento com as rotas novas
     private void menuOrcamento() throws Exception {
         String baseUrl = "http://localhost:8080/api/orcamentos";
         while (true) {
@@ -419,8 +448,12 @@ public class MainConsoleView implements CommandLineRunner {
             System.out.println("3. Buscar por ID");
             System.out.println("4. Atualizar");
             System.out.println("5. Deletar");
-            System.out.println("0. Voltar");
-            System.out.print("Escolha: ");
+            System.out.println("6. Adicionar item");
+            System.out.println("7. Listar itens");
+            System.out.println("8. Atualizar item");
+            System.out.println("9. Remover item");
+            System.out.println("10. Ver orçamentos por fornecedor");
+            System.out.print("0. Voltar\nEscolha: ");
             int opcao = Integer.parseInt(scanner.nextLine());
 
             switch (opcao) {
@@ -429,12 +462,132 @@ public class MainConsoleView implements CommandLineRunner {
                 case 3 -> buscarOrcamentoPorId(baseUrl);
                 case 4 -> atualizarOrcamento(baseUrl);
                 case 5 -> deletarOrcamento(baseUrl);
-                case 0 -> {
-                    return;
-                }
+                case 6 -> adicionarItemOrcamento();
+                case 7 -> listarItensOrcamento();
+                case 8 -> atualizarItemOrcamento();
+                case 9 -> removerItemOrcamento();
+                case 10 -> listarOrcamentosPorFornecedor();
+                case 0 -> { return; }
                 default -> System.out.println("Opção inválida!");
             }
         }
+    }
+
+    private void adicionarItemOrcamento() throws Exception {
+        System.out.print("ID do orçamento: ");
+        Long orcamentoId = Long.parseLong(scanner.nextLine());
+
+        System.out.print("ID do produto: ");
+        Long produtoId = Long.parseLong(scanner.nextLine());
+
+        // Buscar o produto para descobrir o tipo da unidade
+        HttpRequest produtoRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/produtos/" + produtoId))
+                .GET()
+                .build();
+
+        HttpResponse<String> produtoResponse = client.send(produtoRequest, HttpResponse.BodyHandlers.ofString());
+        ProdutoDTO produto = mapper.readValue(produtoResponse.body(), ProdutoDTO.class);
+        String tipo = produto.unidadeMedida().tipo().name();
+
+        String mensagem = switch (tipo) {
+            case "TEMPO" -> "Informe a quantidade em formato de tempo (HH:mm): ";
+            case "INTEIRA" -> "Informe a quantidade como número inteiro: ";
+            case "FRACIONADA" -> "Informe a quantidade com casas decimais: ";
+            default -> "Informe a quantidade: ";
+        };
+
+        System.out.print(mensagem);
+        String quantidade = scanner.nextLine();
+
+        System.out.print("Valor total: ");
+        BigDecimal valorTotal = new BigDecimal(scanner.nextLine());
+
+        String json = String.format("""
+        {
+          "orcamentoId": %d,
+          "produtoId": %d,
+          "quantidade": "%s",
+          "valorTotal": %s
+        }
+        """, orcamentoId, produtoId, quantidade, valorTotal);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/itens"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void listarItensOrcamento() throws Exception {
+        System.out.print("ID do orçamento: ");
+        Long id = Long.parseLong(scanner.nextLine());
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/orcamentos/" + id))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void atualizarItemOrcamento() throws Exception {
+        System.out.print("ID do item: ");
+        Long id = Long.parseLong(scanner.nextLine());
+        System.out.print("ID do orçamento: ");
+        Long orcamentoId = Long.parseLong(scanner.nextLine());
+        System.out.print("ID do produto: ");
+        Long produtoId = Long.parseLong(scanner.nextLine());
+        System.out.print("Quantidade (número ou HH:mm): ");
+        String quantidade = scanner.nextLine();
+        System.out.print("Valor total: ");
+        BigDecimal valorTotal = new BigDecimal(scanner.nextLine());
+
+        String json = String.format("""
+        {
+          "orcamentoId": %d,
+          "produtoId": %d,
+          "quantidade": "%s",
+          "valorTotal": %s
+        }
+        """, orcamentoId, produtoId, quantidade, valorTotal);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/itens/" + id))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
+    }
+
+    private void removerItemOrcamento() throws Exception {
+        System.out.print("ID do item: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/itens/" + id))
+                .DELETE()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.statusCode() == 204 ? "Item removido com sucesso." : response.body());
+    }
+
+    private void listarOrcamentosPorFornecedor() throws Exception {
+        System.out.print("ID do fornecedor: ");
+        Long id = Long.parseLong(scanner.nextLine());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/orcamentos/fornecedor/" + id))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.body());
     }
 
     private void listarOrcamentos(String baseUrl) throws Exception {

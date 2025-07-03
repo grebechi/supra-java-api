@@ -10,4 +10,7 @@ public interface OrcamentoRepository extends JpaRepository<Orcamento, Long> {
 
     @Query("SELECT o FROM Orcamento o ORDER BY o.data DESC")
     List<Orcamento> listarTodosOrdenadosPorData();
+
+    @Query("SELECT o FROM Orcamento o WHERE o.fornecedor.id = :id ORDER BY o.data DESC")
+    List<Orcamento> buscarPorFornecedorId(Long id);
 }

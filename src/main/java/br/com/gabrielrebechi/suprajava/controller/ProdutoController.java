@@ -1,16 +1,16 @@
 package br.com.gabrielrebechi.suprajava.controller;
 
-import br.com.gabrielrebechi.suprajava.dto.ProdutoCreateDTO;
-import br.com.gabrielrebechi.suprajava.dto.ProdutoDTO;
-import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaDTO;
-import br.com.gabrielrebechi.suprajava.model.Produto;
-import br.com.gabrielrebechi.suprajava.model.UnidadeMedida;
+import br.com.gabrielrebechi.suprajava.dto.*;
+import br.com.gabrielrebechi.suprajava.model.*;
+import br.com.gabrielrebechi.suprajava.repository.ItemOrcamentoRepository;
 import br.com.gabrielrebechi.suprajava.repository.ProdutoRepository;
 import br.com.gabrielrebechi.suprajava.repository.UnidadeMedidaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/produtos")
@@ -18,10 +18,12 @@ public class ProdutoController {
 
     private final ProdutoRepository produtoRepository;
     private final UnidadeMedidaRepository unidadeRepository;
+    private final ItemOrcamentoRepository itemOrcamentoRepository;
 
-    public ProdutoController(ProdutoRepository produtoRepository, UnidadeMedidaRepository unidadeRepository) {
+    public ProdutoController(ProdutoRepository produtoRepository, UnidadeMedidaRepository unidadeRepository, ItemOrcamentoRepository itemOrcamentoRepository) {
         this.produtoRepository = produtoRepository;
         this.unidadeRepository = unidadeRepository;
+        this.itemOrcamentoRepository = itemOrcamentoRepository;
     }
 
     @GetMapping
@@ -82,6 +84,36 @@ public class ProdutoController {
         }
         produtoRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/{id}/melhores-ofertas")
+    public ResponseEntity<?> listarMelhoresOfertas(@PathVariable Long id) {
+        Produto produto = produtoRepository.findById(id).orElse(null);
+        if (produto == null) {
+            return ResponseEntity.badRequest().body("Produto não encontrado.");
+        }
+
+        List<ItemOrcamento> itens = itemOrcamentoRepository.buscarPorProdutoOrdenadoPorPreco(id);
+
+        List<MelhorOfertaDTO> ofertas = itens.stream().map(item -> {
+            Orcamento o = item.getOrcamento();
+            Fornecedor f = o.getFornecedor();
+
+            FornecedorDTO fornecedorDTO = new FornecedorDTO(
+                    f.getId(), f.getNome(), f.getCnpj(), f.getEmail(), f.getTelefone()
+            );
+
+            return new MelhorOfertaDTO(
+                    produto.getNome(),
+                    item.getPrecoUnitario(),
+                    item.getQuantidade(),
+                    item.getValorTotal(),
+                    o.getData(),
+                    o.getObservacao(),
+                    fornecedorDTO
+            );
+        }).toList();
+
+        return ResponseEntity.ok(ofertas);
     }
 
     private ProdutoDTO toDTO(Produto p) {

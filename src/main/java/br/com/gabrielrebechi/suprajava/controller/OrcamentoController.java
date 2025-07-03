@@ -83,6 +83,19 @@ public class OrcamentoController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/fornecedor/{id}")
+    public ResponseEntity<?> listarPorFornecedor(@PathVariable Long id) {
+        if (!fornecedorRepository.existsById(id)) {
+            return ResponseEntity.badRequest().body("Fornecedor não encontrado.");
+        }
+
+        List<OrcamentoDTO> orcamentos = orcamentoRepository.buscarPorFornecedorId(id).stream()
+                .map(this::toDTO)
+                .toList();
+
+        return ResponseEntity.ok(orcamentos);
+    }
+
     private OrcamentoDTO toDTO(Orcamento o) {
         Fornecedor f = o.getFornecedor();
         FornecedorDTO fornecedorDTO = new FornecedorDTO(
