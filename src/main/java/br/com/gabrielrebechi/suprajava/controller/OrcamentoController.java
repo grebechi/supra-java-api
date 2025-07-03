@@ -1,15 +1,13 @@
 package br.com.gabrielrebechi.suprajava.controller;
 
-import br.com.gabrielrebechi.suprajava.dto.FornecedorDTO;
-import br.com.gabrielrebechi.suprajava.dto.OrcamentoCreateDTO;
-import br.com.gabrielrebechi.suprajava.dto.OrcamentoDTO;
-import br.com.gabrielrebechi.suprajava.model.Fornecedor;
-import br.com.gabrielrebechi.suprajava.model.Orcamento;
-import br.com.gabrielrebechi.suprajava.repository.FornecedorRepository;
-import br.com.gabrielrebechi.suprajava.repository.OrcamentoRepository;
+import br.com.gabrielrebechi.suprajava.dto.*;
+import br.com.gabrielrebechi.suprajava.model.*;
+import br.com.gabrielrebechi.suprajava.repository.*;
+import br.com.gabrielrebechi.suprajava.util.TempoUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -18,10 +16,14 @@ public class OrcamentoController {
 
     private final OrcamentoRepository orcamentoRepository;
     private final FornecedorRepository fornecedorRepository;
+    private final ItemOrcamentoRepository itemOrcamentoRepository;
 
-    public OrcamentoController(OrcamentoRepository orcamentoRepository, FornecedorRepository fornecedorRepository) {
+    public OrcamentoController(OrcamentoRepository orcamentoRepository,
+                               FornecedorRepository fornecedorRepository,
+                               ItemOrcamentoRepository itemOrcamentoRepository) {
         this.orcamentoRepository = orcamentoRepository;
         this.fornecedorRepository = fornecedorRepository;
+        this.itemOrcamentoRepository = itemOrcamentoRepository;
     }
 
     @GetMapping
@@ -41,8 +43,7 @@ public class OrcamentoController {
 
     @PostMapping
     public ResponseEntity<?> criar(@RequestBody OrcamentoCreateDTO dto) {
-        Fornecedor fornecedor = fornecedorRepository.findById(dto.fornecedorId())
-                .orElse(null);
+        Fornecedor fornecedor = fornecedorRepository.findById(dto.fornecedorId()).orElse(null);
 
         if (fornecedor == null) {
             return ResponseEntity.badRequest().body("Fornecedor não encontrado.");
@@ -57,9 +58,7 @@ public class OrcamentoController {
     public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody OrcamentoCreateDTO dto) {
         return orcamentoRepository.findById(id)
                 .map(orcamento -> {
-                    Fornecedor fornecedor = fornecedorRepository.findById(dto.fornecedorId())
-                            .orElse(null);
-
+                    Fornecedor fornecedor = fornecedorRepository.findById(dto.fornecedorId()).orElse(null);
                     if (fornecedor == null) {
                         return ResponseEntity.badRequest().body("Fornecedor não encontrado.");
                     }
@@ -86,7 +85,13 @@ public class OrcamentoController {
 
     private OrcamentoDTO toDTO(Orcamento o) {
         Fornecedor f = o.getFornecedor();
-        FornecedorDTO fornecedorDTO = new FornecedorDTO(f.getId(), f.getNome(), f.getCnpj(), f.getEmail(), f.getTelefone());
+        FornecedorDTO fornecedorDTO = new FornecedorDTO(
+                f.getId(), f.getNome(), f.getCnpj(), f.getEmail(), f.getTelefone()
+        );
+
+        List<ItemOrcamentoDTO> itens = itemOrcamentoRepository.buscarPorOrcamentoId(o.getId()).stream()
+                .map(this::mapItem)
+                .toList();
 
         return new OrcamentoDTO(
                 o.getId(),
@@ -94,7 +99,33 @@ public class OrcamentoController {
                 fornecedorDTO,
                 o.getData(),
                 o.getValorTotal(),
-                o.getObservacao()
+                o.getObservacao(),
+                itens
+        );
+    }
+
+    private ItemOrcamentoDTO mapItem(ItemOrcamento item) {
+        Produto p = item.getProduto();
+
+        UnidadeMedida um = p.getUnidadeMedida();
+        UnidadeMedidaDTO umDTO = new UnidadeMedidaDTO(
+                um.getId(), um.getNome(), um.getSigla(), um.getTipo(), um.getDescricao()
+        );
+
+        ProdutoDTO produtoDTO = new ProdutoDTO(
+                p.getId(), p.getNome(), umDTO, p.getDescricao()
+        );
+
+        String quantidadeFormatada = um.getTipo() == TipoUnidade.TEMPO
+                ? TempoUtils.decimalParaTempo(item.getQuantidade())
+                : item.getQuantidade().toPlainString();
+
+        return new ItemOrcamentoDTO(
+                item.getId(),
+                produtoDTO,
+                quantidadeFormatada,
+                item.getValorTotal(),
+                item.getPrecoUnitario()
         );
     }
 }
