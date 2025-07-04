@@ -6,6 +6,8 @@ import br.com.gabrielrebechi.suprajava.model.UnidadeMedida;
 import br.com.gabrielrebechi.suprajava.repository.UnidadeMedidaRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +24,20 @@ public class UnidadeMedidaController {
         this.repository = repository;
     }
 
-    @Operation(summary = "Lista todas as unidades de medida")
+    @Operation(summary = "Lista paginada de unidades de medida com filtro opcional")
     @GetMapping
-    public List<UnidadeMedidaDTO> listar() {
-        return repository.findAll().stream()
-                .map(this::toDTO)
-                .toList();
+    public Page<UnidadeMedidaDTO> listar(Pageable pageable, @RequestParam(required = false) String busca) {
+        Page<UnidadeMedida> unidades;
+
+        if (busca == null || busca.isBlank()) {
+            unidades = repository.findAll(pageable);
+        } else {
+            unidades = repository.findByNomeContainingIgnoreCaseOrSiglaContainingIgnoreCase(busca, busca, pageable);
+        }
+
+        return unidades.map(this::toDTO);
     }
+
 
     @Operation(summary = "Busca uma unidade de medida pelo ID")
     @GetMapping("/{id}")
