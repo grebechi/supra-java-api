@@ -6,6 +6,8 @@ import br.com.gabrielrebechi.suprajava.repository.*;
 import br.com.gabrielrebechi.suprajava.util.TempoUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,13 +31,16 @@ public class OrcamentoController {
         this.itemOrcamentoRepository = itemOrcamentoRepository;
     }
 
-    @Operation(summary = "Lista todos os orçamentos")
     @GetMapping
-    public List<OrcamentoDTO> listar() {
-        return orcamentoRepository.listarTodosOrdenadosPorData().stream()
-                .map(this::toDTO)
-                .toList();
+    @Operation(summary = "Lista paginada de orçamentos")
+    public Page<OrcamentoDTO> listar(Pageable pageable, @RequestParam(required = false) String busca) {
+        Page<Orcamento> orcamentos = (busca == null || busca.isBlank())
+                ? orcamentoRepository.findAll(pageable)
+                : orcamentoRepository.buscarPorNomeOuObservacao(busca, pageable);
+
+        return orcamentos.map(this::toDTO);
     }
+
 
     @Operation(summary = "Busca um orçamento pelo ID")
     @GetMapping("/{id}")
