@@ -15,4 +15,6 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     @Query("SELECT p FROM Produto p WHERE LOWER(p.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(p.descricao) LIKE LOWER(CONCAT('%', :busca, '%'))")
     Page<Produto> buscarPorNomeOuDescricao(@Param("busca") String busca, Pageable pageable);
 
+    boolean existsByUnidadeMedidaId(Long unidadeMedidaId);
+
 }

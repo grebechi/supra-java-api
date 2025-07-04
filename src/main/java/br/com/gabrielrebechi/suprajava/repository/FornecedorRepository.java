@@ -1,6 +1,8 @@
 package br.com.gabrielrebechi.suprajava.repository;
 
 import br.com.gabrielrebechi.suprajava.model.Fornecedor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,4 +14,6 @@ public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
 
     @Query("SELECT COUNT(f) > 0 FROM Fornecedor f WHERE f.cnpj = :cnpj")
     boolean existsByCnpj(@Param("cnpj") String cnpj);
+
+    Page<Fornecedor> findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(String nome, String cnpj, Pageable pageable);
 }

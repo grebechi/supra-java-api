@@ -3,11 +3,13 @@ package br.com.gabrielrebechi.suprajava.controller;
 import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaCreateDTO;
 import br.com.gabrielrebechi.suprajava.dto.UnidadeMedidaDTO;
 import br.com.gabrielrebechi.suprajava.model.UnidadeMedida;
+import br.com.gabrielrebechi.suprajava.repository.ProdutoRepository;
 import br.com.gabrielrebechi.suprajava.repository.UnidadeMedidaRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +21,11 @@ import java.util.List;
 public class UnidadeMedidaController {
 
     private final UnidadeMedidaRepository repository;
+    private final ProdutoRepository produtoRepository;
 
-    public UnidadeMedidaController(UnidadeMedidaRepository repository) {
+    public UnidadeMedidaController(UnidadeMedidaRepository repository, ProdutoRepository produtoRepository) {
         this.repository = repository;
+        this.produtoRepository = produtoRepository;
     }
 
     @Operation(summary = "Lista paginada de unidades de medida com filtro opcional")
@@ -79,6 +83,13 @@ public class UnidadeMedidaController {
         if (!repository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
+
+        boolean possuiProdutosRelacionados = produtoRepository.existsByUnidadeMedidaId(id);
+        if (possuiProdutosRelacionados) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .build(); // Ou pode retornar uma mensagem mais descritiva se quiser.
+        }
+
         repository.deleteById(id);
         return ResponseEntity.noContent().build();
     }

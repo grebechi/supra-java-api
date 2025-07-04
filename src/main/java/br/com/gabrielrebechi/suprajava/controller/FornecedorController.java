@@ -6,6 +6,9 @@ import br.com.gabrielrebechi.suprajava.model.Fornecedor;
 import br.com.gabrielrebechi.suprajava.repository.FornecedorRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +25,21 @@ public class FornecedorController {
         this.repository = repository;
     }
 
-    @Operation(summary = "Lista todos os fornecedores")
+    @Operation(summary = "Lista paginada de fornecedores com filtro opcional")
     @GetMapping
-    public List<FornecedorDTO> listar() {
-        return repository.findAll().stream()
-                .map(this::toDTO)
-                .toList();
+    public Page<FornecedorDTO> listar(Pageable pageable, @RequestParam(required = false) String busca) {
+        Page<Fornecedor> fornecedores;
+
+        if (busca == null || busca.isBlank()) {
+            fornecedores = repository.findAll(pageable);
+        } else {
+            fornecedores = repository.findByNomeContainingIgnoreCaseOrCnpjContainingIgnoreCase(busca, busca, pageable);
+        }
+
+        return fornecedores.map(this::toDTO);
     }
+
+
 
     @Operation(summary = "Busca um fornecedor pelo ID")
     @GetMapping("/{id}")
