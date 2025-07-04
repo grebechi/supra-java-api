@@ -7,6 +7,9 @@ import br.com.gabrielrebechi.suprajava.repository.ProdutoRepository;
 import br.com.gabrielrebechi.suprajava.repository.UnidadeMedidaRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,12 +32,18 @@ public class ProdutoController {
         this.itemOrcamentoRepository = itemOrcamentoRepository;
     }
 
-    @Operation(summary = "Lista todos os produtos cadastrados")
     @GetMapping
-    public List<ProdutoDTO> listar() {
-        return produtoRepository.findAll().stream()
-                .map(this::toDTO)
-                .toList();
+    @Operation(summary = "Lista paginada de produtos")
+    public Page<ProdutoDTO> listar(Pageable pageable, @RequestParam(required = false) String busca) {
+        Page<Produto> produtos;
+
+        if (busca == null || busca.isBlank()) {
+            produtos = produtoRepository.findAll(pageable);
+        } else {
+            produtos = produtoRepository.buscarPorNomeOuDescricao(busca, pageable);
+        }
+
+        return produtos.map(this::toDTO);
     }
 
     @Operation(summary = "Busca um produto pelo ID")
